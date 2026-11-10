@@ -1,0 +1,8 @@
+NEXT_PUBLIC_SUPABASE_URL=https://khglynzhjfjdswhrzckf.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_gZ7_st3SviTllKgTNO7ydA_uS8heFhU
+# Optional: richer AI analysis and outreach drafts (server only, never NEXT_PUBLIC)
+ANTHROPIC_API_KEY=
+# Optional: social profile search (server only)
+BRAVE_SEARCH_API_KEY=
+# Max website research runs per user per day
+DAILY_RESEARCH_LIMIT=50

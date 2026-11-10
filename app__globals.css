@@ -1,0 +1,17 @@
+:root{--bg:#f6f7fb;--card:#fff;--ink:#14192b;--mut:#5b6478;--line:#e3e6ef;--brand:#3b4cca;--ok:#16794c;--warn:#a15c00;--bad:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c2f;--ink:#eef0f8;--mut:#9aa3bd;--line:#2a3050;--brand:#8a98ff;--ok:#5fd39b;--warn:#f0b04a;--bad:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:var(--brand)}main{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+header.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grow{flex:1}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}button:disabled{opacity:.5;cursor:default}
+input,textarea{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+.wrap{overflow-x:auto}.mut{color:var(--mut)}.mono{font-family:ui-monospace,monospace;font-size:13px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;border:1px solid var(--line)}
+.b-HOT{color:var(--bad)}.b-HIGH{color:var(--warn)}.b-ok{color:var(--ok)}
+.err{color:var(--bad)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+pre{white-space:pre-wrap;font:inherit;margin:0}ul{margin:6px 0;padding-left:20px}
