@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPrivateIp, parseTarget, variants } from '../lib/safe-url.ts';
+import { isPrivateIp, parseTarget, variants } from '../lib/safe-url';
 
 test('blocks private and metadata addresses', () => {
   for (const ip of ['127.0.0.1','10.1.2.3','172.16.0.1','192.168.1.1','169.254.169.254','100.64.0.1','::1','fd00::1','::ffff:10.0.0.1','0.0.0.0'])

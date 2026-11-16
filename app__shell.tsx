@@ -19,7 +19,7 @@ export default function Shell() {
     setBusy(false); setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth' }), 50);
   }
   return <>
-    <nav style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 16px 0' }} className="row"><Link className="btn" href="/">Prospects</Link><Link className="btn" href="/followups">Follow-ups</Link></nav>
+    <nav style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 16px 0' }} className="row"><Link className="btn" href="/">Prospects</Link><Link className="btn" href="/followups">Follow-ups</Link><Link className="btn" href="/import">Import</Link><Link className="btn" href="/services">Services</Link><Link className="btn" href="/export">Export</Link><Link className="btn" href="/settings">Settings</Link></nav>
     <button className="primary" style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 20 }} onClick={() => setOpen(!open)} aria-expanded={open}>{open ? 'Close assistant' : 'Sales assistant'}</button>
     {open && <aside role="dialog" aria-label="Sales assistant" className="card" style={{ position: 'fixed', right: 16, bottom: 64, width: 'min(380px, calc(100vw - 32px))', height: 'min(520px, 70vh)', zIndex: 20, display: 'flex', flexDirection: 'column', margin: 0 }}>
       <b>Sales assistant</b><span className="mut" style={{ fontSize: 13 }}>{pid ? 'Knows the prospect you have open.' : 'Open a prospect for prospect-specific help.'}</span>

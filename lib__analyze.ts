@@ -1,15 +1,17 @@
 import type { Research } from './reader';
 
-export type Opportunity = { name: string; service: string; why: string; basis: 'Verified' | 'Inferred'; weight: number };
+export type Opportunity = { name: string; service: string; why: string; basis: 'Verified' | 'Inferred'; weight: number; category: string };
+export type Svc = { name: string; category: string; active: boolean };
 export type Analysis = {
   score: number; priority: 'HOT' | 'HIGH' | 'MEDIUM' | 'LOW'; summary: string;
   opportunities: Opportunity[]; verified: string[]; inferred: string[]; unknown: string[];
+  breakdown: { base: number; gaps: number; reach: number }; notes: string[];
 };
 type P = { company_name: string; industry: string; contact_name: string; job_title: string; email1: string; linkedin_url: string; phone: string; city: string; country: string; notes: string };
 
 export const priorityOf = (s: number) => (s >= 80 ? 'HOT' : s >= 60 ? 'HIGH' : s >= 40 ? 'MEDIUM' : 'LOW') as Analysis['priority'];
 
-export function analyze(p: P, r: Research | null): Analysis {
+export function analyze(p: P, r: Research | null, services?: Svc[]): Analysis {
   const verified: string[] = [], inferred: string[] = [], unknown: string[] = [], opps: Opportunity[] = [];
   const add = (o: Opportunity) => opps.push(o);
   if (p.contact_name) verified.push(`Contact: ${p.contact_name}${p.job_title ? ', ' + p.job_title : ''} (from your spreadsheet)`);
@@ -17,7 +19,7 @@ export function analyze(p: P, r: Research | null): Analysis {
   if (!ok) {
     unknown.push('Website content was not read, so website-based findings are not available.');
     if (p.industry) inferred.push(`Typical needs for ${p.industry} businesses are suggestions only, not findings.`);
-    add({ name: 'Website review needed', service: 'Website audit', why: 'The website could not be read. A manual review would confirm what is possible.', basis: 'Inferred', weight: 10 });
+    add({ name: 'Website review needed', service: 'Website audit', why: 'The website could not be read. A manual review would confirm what is possible.', basis: 'Inferred', weight: 10 , category: 'website' });
   } else {
     const s = r!.signals;
     verified.push(`Website opened: ${r!.openedUrl} (${r!.pages.length} page${r!.pages.length > 1 ? 's' : ''} read)`);
@@ -25,29 +27,36 @@ export function analyze(p: P, r: Research | null): Analysis {
     if (r!.description) verified.push(`Site description: ${r!.description}`);
     if (r!.social.length) verified.push(`Social profiles found: ${r!.social.map(x => x.network + (x.source === 'search' ? ' (search match, check it)' : '')).join(', ')}`);
     if (r!.emails.length) verified.push(`Public email on site: ${r!.emails[0]}`);
-    if (!s.https) add({ name: 'Site is not secure (no HTTPS)', service: 'Website refresh', why: 'The site loaded without HTTPS, which browsers flag to visitors.', basis: 'Verified', weight: 18 });
-    if (!s.mobileViewport) add({ name: 'No mobile viewport tag found', service: 'Website refresh', why: 'The page did not declare a mobile viewport, which often means a poor phone experience.', basis: 'Verified', weight: 16 });
-    if (!s.booking && !s.ecommerce) add({ name: 'No online booking or ordering found', service: 'Online booking or ordering flow', why: 'No booking or checkout wording was found on the pages read.', basis: 'Verified', weight: 20 });
-    if (!s.liveChat && !s.whatsapp) add({ name: 'No chat or messaging option found', service: 'Chat / WhatsApp automation', why: 'No chat widget or WhatsApp link was found.', basis: 'Verified', weight: 14 });
-    if (!s.analytics) add({ name: 'No analytics tracking found', service: 'Analytics and conversion tracking', why: 'No common analytics scripts were detected.', basis: 'Verified', weight: 10 });
-    if (!s.contactForm) add({ name: 'No contact form found', service: 'Lead capture and CRM follow-up', why: 'No form tag was found on the pages read.', basis: 'Verified', weight: 12 });
-    if (!s.structuredData) add({ name: 'No structured data (SEO) found', service: 'SEO setup', why: 'No schema.org JSON-LD was found.', basis: 'Verified', weight: 8 });
-    if (!r!.description) add({ name: 'Missing meta description', service: 'SEO setup', why: 'The home page has no meta description.', basis: 'Verified', weight: 6 });
-    if (!s.blog) add({ name: 'No blog or news section found', service: 'Content marketing', why: 'No blog-like page was linked from the home page.', basis: 'Verified', weight: 5 });
-    if (!r!.social.length) add({ name: 'No social profiles linked', service: 'Social media setup', why: 'The site links to no social profiles.', basis: 'Verified', weight: 8 });
+    if (!s.https) add({ name: 'Site is not secure (no HTTPS)', service: 'Website refresh', why: 'The site loaded without HTTPS, which browsers flag to visitors.', basis: 'Verified', weight: 18 , category: 'website' });
+    if (!s.mobileViewport) add({ name: 'No mobile viewport tag found', service: 'Website refresh', why: 'The page did not declare a mobile viewport, which often means a poor phone experience.', basis: 'Verified', weight: 16 , category: 'website' });
+    if (!s.booking && !s.ecommerce) add({ name: 'No online booking or ordering found', service: 'Online booking or ordering flow', why: 'No booking or checkout wording was found on the pages read.', basis: 'Verified', weight: 20 , category: 'booking' });
+    if (!s.liveChat && !s.whatsapp) add({ name: 'No chat or messaging option found', service: 'Chat / WhatsApp automation', why: 'No chat widget or WhatsApp link was found.', basis: 'Verified', weight: 14 , category: 'chat' });
+    if (!s.analytics) add({ name: 'No analytics tracking found', service: 'Analytics and conversion tracking', why: 'No common analytics scripts were detected.', basis: 'Verified', weight: 10 , category: 'analytics' });
+    if (!s.contactForm) add({ name: 'No contact form found', service: 'Lead capture and CRM follow-up', why: 'No form tag was found on the pages read.', basis: 'Verified', weight: 12 , category: 'leads' });
+    if (!s.structuredData) add({ name: 'No structured data (SEO) found', service: 'SEO setup', why: 'No schema.org JSON-LD was found.', basis: 'Verified', weight: 8 , category: 'seo' });
+    if (!r!.description) add({ name: 'Missing meta description', service: 'SEO setup', why: 'The home page has no meta description.', basis: 'Verified', weight: 6 , category: 'seo' });
+    if (!s.blog) add({ name: 'No blog or news section found', service: 'Content marketing', why: 'No blog-like page was linked from the home page.', basis: 'Verified', weight: 5 , category: 'content' });
+    if (!r!.social.length) add({ name: 'No social profiles linked', service: 'Social media setup', why: 'The site links to no social profiles.', basis: 'Verified', weight: 8 , category: 'social' });
     if (s.portal) inferred.push('Login wording suggests a customer or member area exists.');
     unknown.push('Revenue, team size, ad spend and internal tools are not visible from public pages.');
     if (r!.status === 'Partial') unknown.push('Only the home page was read, so findings about other pages may be missing.');
   }
-  opps.sort((a, b) => b.weight - a.weight);
+  const notes: string[] = [];
+  let kept = opps;
+  if (services && services.length) {
+    const active = new Map(services.filter(x => x.active).map(x => [x.category, x.name] as const));
+    kept = opps.filter(o => active.has(o.category)).map(o => ({ ...o, service: active.get(o.category)! }));
+    if (kept.length < opps.length) notes.push(`${opps.length - kept.length} finding(s) hidden because you do not offer a matching service (see Services).`);
+  }
+  kept.sort((a, b) => b.weight - a.weight);
   const reach = (p.email1 ? 6 : 0) + (p.linkedin_url ? 4 : 0) + (p.phone ? 2 : 0) + (p.contact_name ? 3 : 0);
-  const gap = Math.min(65, opps.reduce((n, o) => n + o.weight, 0));
+  const gap = Math.min(65, kept.reduce((n, o) => n + o.weight, 0));
   const base = ok ? 20 : 10;
-  const score = Math.max(0, Math.min(100, Math.round(base + gap + reach * 1.0)));
+  const score = Math.max(0, Math.min(100, Math.round(base + gap + reach)));
   const summary = ok
-    ? `${p.company_name}: ${r!.description || r!.title || 'website read'}. ${opps.length} gap${opps.length === 1 ? '' : 's'} found on the pages read.`
+    ? `${p.company_name}: ${r!.description || r!.title || 'website read'}. ${kept.length} gap${kept.length === 1 ? '' : 's'} found on the pages read.`
     : `${p.company_name}: website not read. Score is based on spreadsheet details only and is low confidence.`;
-  return { score, priority: priorityOf(score), summary, opportunities: opps.slice(0, 6), verified, inferred, unknown };
+  return { score, priority: priorityOf(score), summary, opportunities: kept.slice(0, 6), verified, inferred, unknown, breakdown: { base, gaps: gap, reach }, notes };
 }
 
 export type DraftOpts = { lead?: string; tone?: string; length?: string };

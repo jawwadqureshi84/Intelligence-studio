@@ -24,7 +24,7 @@ export default async function Prospect({ params }: { params: Promise<{ id: strin
         {r.social.length > 0 && <><h2>Social profiles</h2><ul>{r.social.map((s: any, i: number) => <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.network}</a> <span className="mut">{s.source === 'search' ? '— found by search, confirm it is the right company' : '— linked from their website'}</span></li>)}</ul></>}</div>
       <div className="grid">
         <div className="card"><h2>Verified</h2><ul>{a.verified.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul><h2>Inferred</h2><ul>{a.inferred.length ? a.inferred.map((x: string, i: number) => <li key={i}>{x}</li>) : <li className="mut">None</li>}</ul><h2>Unknown</h2><ul>{a.unknown.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
-        <div className="card"><h2>Opportunities</h2><ul>{a.opportunities.map((o: any, i: number) => <li key={i}><b>{o.name}</b> → {o.service} <span className="badge">{o.basis}</span><div className="mut">{o.why}</div></li>)}</ul></div></div>
+        <div className="card"><h2>Opportunities</h2>{a.breakdown && <p className="mut">Score {p.score} = base {a.breakdown.base} + website gaps {a.breakdown.gaps} + reachability {a.breakdown.reach}</p>}{(a.notes || []).map((n: string, i: number) => <p key={i} className="mut">{n}</p>)}<ul>{a.opportunities.map((o: any, i: number) => <li key={i}><b>{o.name}</b> → {o.service} <span className="badge">{o.basis}</span><div className="mut">{o.why}</div></li>)}</ul></div></div>
       <Outreach p={p} /><Pipeline p={p} /></>}
     <Extras p={p} />
   </main>;

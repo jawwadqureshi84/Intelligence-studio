@@ -1,9 +1,7 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import Papa from 'papaparse';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase-browser';
-import { FIELDS, autoMap, csvCell } from '@/lib/csv';
 import { useSender } from '@/lib/sender';
 
 type P = Record<string, any>;
@@ -13,22 +11,11 @@ export default function Home() {
   const sb = useMemo(() => supabaseBrowser(), []);
   const [rows, setRows] = useState<P[]>([]), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [q, setQ] = useState('');
   const [sender, setSender] = useSender();
-  const [sel, setSel] = useState<Set<string>>(new Set()), [fp, setFp] = useState(''), [confirmDel, setConfirmDel] = useState(false);
-  const file = useRef<HTMLInputElement>(null);
-
+  const [sel, setSel] = useState<Set<string>>(new Set()), [fp, setFp] = useState(''), [fr, setFr] = useState(''), [confirmDel, setConfirmDel] = useState(false);
+  
   async function load() { const { data, error } = await sb.from('prospects').select('*').order('created_at', { ascending: false }).limit(1000); if (error) setMsg(error.message); else setRows(data || []); }
   useEffect(() => { load(); }, []); // eslint-disable-line
 
-  function onFile(f?: File) {
-    if (!f) return;
-    Papa.parse<string[]>(f, { skipEmptyLines: true, complete: async res => {
-      const [head, ...data] = res.data as string[][]; if (!head || !data.length) return setMsg('The file needs a header row and at least one prospect.');
-      const m = autoMap(head); if (m.company_name == null) return setMsg('No "Company" column found. Rename a column to "Company" and try again.');
-      const recs = data.map(r => { const o: P = {}; FIELDS.forEach(k => { o[k] = m[k] != null ? String(r[m[k]!] ?? '').trim() : ''; }); return o; }).filter(o => o.company_name);
-      setBusy(true); const { error } = await sb.from('prospects').insert(recs); setBusy(false);
-      setMsg(error ? error.message : `Imported ${recs.length} prospects.`); load();
-    } });
-  }
   async function research(id: string) {
     const r = await fetch('/api/research', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, sender }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Research failed'); return j;
@@ -38,11 +25,7 @@ export default function Home() {
     for (const id of ids) { try { setMsg(`Researching ${ok + 1} of ${ids.length}…`); await research(id); ok++; } catch (e: any) { setMsg(e.message); break; } }
     setBusy(false); if (ok === ids.length) setMsg(`Researched ${ok} prospect${ok === 1 ? '' : 's'}.`); load();
   }
-  function exportCsv() {
-    const text = '﻿' + COLS.map(c => csvCell(c[0])).join(',') + '\r\n' + shown.map(p => COLS.map(c => csvCell(p[c[1]])).join(',')).join('\r\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = 'prospects.csv'; a.click();
-  }
-  const shown = rows.filter(p => (!q || [p.company_name, p.contact_name, p.industry, p.email1, p.email2, p.email3, p.phone, p.city, p.country].join(' ').toLowerCase().includes(q.toLowerCase())) && (!fp || p.priority === fp));
+  const shown = rows.filter(p => (!q || [p.company_name, p.contact_name, p.industry, p.email1, p.email2, p.email3, p.phone, p.city, p.country].join(' ').toLowerCase().includes(q.toLowerCase())) && (!fp || p.priority === fp) && (!fr || p.review_status === fr));
   const selIds = [...sel].filter(id => rows.some(r => r.id === id));
   const today = new Date().toISOString().slice(0, 10);
   const stats = { total: rows.length, done: rows.filter(p => p.research_status === 'Completed' || p.research_status === 'Partial').length, hot: rows.filter(p => p.priority === 'HOT' || p.priority === 'HIGH').length, due: rows.filter(p => p.next_followup && p.next_followup <= today).length };
@@ -52,10 +35,9 @@ export default function Home() {
 
   return <main>
     <header className="top"><h1>Prospect Intelligence Studio</h1>
-      <div className="row"><button onClick={exportCsv} disabled={!shown.length}>Export CSV</button><button onClick={async () => { await sb.auth.signOut(); window.location.href = '/login'; }}>Sign out</button></div></header>
+      <div className="row"><Link className="btn" href="/export">Export</Link></div></header>
     <div className="card"><div className="row">
-      <input ref={file} type="file" accept=".csv,.tsv,.txt" hidden onChange={e => onFile(e.target.files?.[0])} />
-      <button className="primary" disabled={busy} onClick={() => file.current?.click()}>Import CSV</button>
+      <Link className="btn primary" href="/import">Import prospects</Link>
       <button disabled={busy || !pending.length} onClick={() => researchAll(pending)}>Research all pending ({pending.length})</button>
       <input style={{ maxWidth: 240 }} placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search prospects" />
       <span className="grow" />
@@ -63,7 +45,8 @@ export default function Home() {
       <input style={{ maxWidth: 170 }} placeholder="Your company" value={sender.company} onChange={e => setSender({ ...sender, company: e.target.value })} aria-label="Your company" /></div>
       <p className="mut" style={{ margin: '8px 0 0' }}>CSV columns recognised: Company, Contact, Job Title, Phone Number, Email 1, Email 2, Email 3, LinkedIn Profile, Website, Industry, Country, City, Notes.</p>
       {msg && <p role="status" style={{ margin: '8px 0 0' }}>{msg}</p>}</div>
-    {rows.length > 0 && <div className="card"><div className="row"><span className="badge">Prospects <b>{stats.total}</b></span><span className="badge">Researched <b>{stats.done}</b></span><span className="badge">Hot or high <b>{stats.hot}</b></span><Link className="badge" href="/followups">Follow-ups due <b>{stats.due}</b></Link><span className="grow" /><label>Priority <select value={fp} onChange={e => setFp(e.target.value)}><option value="">All</option>{['HOT', 'HIGH', 'MEDIUM', 'LOW'].map(x => <option key={x}>{x}</option>)}</select></label></div></div>}
+    {rows.length > 0 && <div className="card"><div className="row"><span className="badge">Prospects <b>{stats.total}</b></span><span className="badge">Researched <b>{stats.done}</b></span><span className="badge">Hot or high <b>{stats.hot}</b></span><Link className="badge" href="/followups">Follow-ups due <b>{stats.due}</b></Link><span className="grow" /><label>Priority <select value={fp} onChange={e => setFp(e.target.value)}><option value="">All</option>{['HOT', 'HIGH', 'MEDIUM', 'LOW'].map(x => <option key={x}>{x}</option>)}</select></label> <label>Review <select value={fr} onChange={e => setFr(e.target.value)}><option value="">All</option>{['Draft', 'Reviewed', 'Approved', 'Rejected'].map(x => <option key={x}>{x}</option>)}</select></label></div>
+      <div className="row" style={{ marginTop: 10 }} aria-label="Priority mix">{(['HOT', 'HIGH', 'MEDIUM', 'LOW'] as const).map(k => { const n = rows.filter(p => p.priority === k).length; return <span key={k} className="grow" style={{ minWidth: 120 }}><span className="mut" style={{ fontSize: 12 }}>{k} {n}</span><span style={{ display: 'block', height: 8, borderRadius: 4, background: 'var(--line)' }}><span style={{ display: 'block', height: 8, borderRadius: 4, background: 'var(--brand)', width: `${rows.length ? Math.round((n / rows.length) * 100) : 0}%` }} /></span></span>; })}</div></div>}
     {selIds.length > 0 && <div className="card"><div className="row"><b>{selIds.length} selected</b><button disabled={busy} onClick={() => researchAll(selIds)}>Research selected</button><button disabled={busy} onClick={() => bulk({ review_status: 'Reviewed' })}>Mark reviewed</button><button disabled={busy} onClick={() => bulk({ review_status: 'Approved' })}>Approve</button><button disabled={busy} onClick={() => bulk({ review_status: 'Rejected' })}>Reject</button><button disabled={busy} onClick={bulkDelete}>{confirmDel ? 'Really delete?' : 'Delete'}</button><button onClick={() => { setSel(new Set()); setConfirmDel(false); }}>Clear</button></div></div>}
     <div className="card wrap">{!rows.length ? <p className="mut">No prospects yet. Import a CSV to start.</p> :
       <table><thead><tr><th><input type="checkbox" aria-label="Select all" checked={shown.length > 0 && shown.every(p => sel.has(p.id))} onChange={e => setSel(e.target.checked ? new Set(shown.map(p => p.id)) : new Set())} /></th><th>Company</th><th>Contact details</th><th>Website</th><th>Score</th><th>Research</th><th /></tr></thead><tbody>

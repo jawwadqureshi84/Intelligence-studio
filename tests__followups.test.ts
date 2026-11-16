@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nextStep, markSent, setStage, isStopped } from '../lib/followups.ts';
-import { proposalMd, proposalHtml } from '../lib/proposal.ts';
-import { draftOutreach } from '../lib/analyze.ts';
+import { nextStep, markSent, setStage, isStopped } from '../lib/followups';
+import { proposalMd, proposalHtml } from '../lib/proposal';
+import { draftOutreach } from '../lib/analyze';
 
 const base = { outreach_stage: 'Not contacted', outreach_started: null as string | null, outreach_log: [] as any[] };
 test('no sequence until first send', () => assert.equal(nextStep(base), null));
@@ -39,4 +39,14 @@ test('proposal has sections and html escapes', () => {
   const md = proposalMd({ ...P, website: '', analysis: A, research: null }, { name: 'Jo', company: 'Co' }, '2026-11-10');
   assert.match(md, /## 3\. Proposed work/); assert.match(md, /Date: 2026-11-10/);
   assert.match(proposalHtml('# <b>x</b>'), /&lt;b&gt;/);
+});
+
+import { analyze } from '../lib/analyze';
+test('catalog hides opportunities the user does not sell and renames the rest', () => {
+  const research: any = { status: 'Completed', openedUrl: 'https://a.com', pages: [{}, {}], title: 't', description: '', social: [], emails: [], signals: { https: false, mobileViewport: true, booking: true, liveChat: true, analytics: true, contactForm: true, structuredData: true, blog: true } };
+  const all = analyze(P, research);
+  assert.ok(all.opportunities.some((o: any) => o.category === 'website'));
+  const some = analyze(P, research, [{ name: 'My Secure Sites', category: 'website', active: true }, { name: 'SEO', category: 'seo', active: false }]);
+  assert.ok(some.opportunities.every((o: any) => o.service === 'My Secure Sites'));
+  assert.ok(some.notes.length > 0); assert.ok(some.breakdown.gaps > 0);
 });

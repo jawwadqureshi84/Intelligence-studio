@@ -9,7 +9,9 @@ export async function POST(req: Request) {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
-  const { id, sender } = await req.json().catch(() => ({}));
+  const { id, sender: senderIn } = await req.json().catch(() => ({}));
+  const { data: prof } = await sb.from('profiles').select('sender_name,sender_company').maybeSingle();
+  const sender = { name: senderIn?.name || prof?.sender_name || '', company: senderIn?.company || prof?.sender_company || '' };
   if (!id || typeof id !== 'string') return NextResponse.json({ error: 'Missing prospect id' }, { status: 400 });
 
   const { data: p, error } = await sb.from('prospects').select('*').eq('id', id).single();
@@ -21,7 +23,8 @@ export async function POST(req: Request) {
 
   const social = await searchSocial(p.company_name, p.city);
   const research = await researchSite(p.website, social);
-  const a = analyze(p, research);
+  const { data: svc } = await sb.from('services').select('name,category,active');
+  const a = analyze(p, research, svc && svc.length ? svc : undefined);
   const draft = await aiPolish(p, a, research, draftOutreach(p, a, { name: String(sender?.name || '').slice(0, 80), company: String(sender?.company || '').slice(0, 80) }, { lead: p.lead_opp, tone: p.tone, length: p.length }));
 
   const patch = {
