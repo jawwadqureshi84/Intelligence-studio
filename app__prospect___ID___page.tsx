@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase-server';
-import Review from './review';
+import { Outreach, Pipeline, Extras } from './panels';
 
 export default async function Prospect({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,6 +25,7 @@ export default async function Prospect({ params }: { params: Promise<{ id: strin
       <div className="grid">
         <div className="card"><h2>Verified</h2><ul>{a.verified.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul><h2>Inferred</h2><ul>{a.inferred.length ? a.inferred.map((x: string, i: number) => <li key={i}>{x}</li>) : <li className="mut">None</li>}</ul><h2>Unknown</h2><ul>{a.unknown.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
         <div className="card"><h2>Opportunities</h2><ul>{a.opportunities.map((o: any, i: number) => <li key={i}><b>{o.name}</b> → {o.service} <span className="badge">{o.basis}</span><div className="mut">{o.why}</div></li>)}</ul></div></div>
-      <Review id={p.id} subject={p.email_subject} body={p.email_body} linkedin={p.linkedin_message} status={p.review_status} /></>}
+      <Outreach p={p} /><Pipeline p={p} /></>}
+    <Extras p={p} />
   </main>;
 }

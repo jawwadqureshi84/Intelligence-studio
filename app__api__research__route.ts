@@ -22,11 +22,11 @@ export async function POST(req: Request) {
   const social = await searchSocial(p.company_name, p.city);
   const research = await researchSite(p.website, social);
   const a = analyze(p, research);
-  const draft = await aiPolish(p, a, research, draftOutreach(p, a, { name: String(sender?.name || '').slice(0, 80), company: String(sender?.company || '').slice(0, 80) }));
+  const draft = await aiPolish(p, a, research, draftOutreach(p, a, { name: String(sender?.name || '').slice(0, 80), company: String(sender?.company || '').slice(0, 80) }, { lead: p.lead_opp, tone: p.tone, length: p.length }));
 
   const patch = {
     research, research_status: research.status, researched_at: research.researchedAt, analysis: a, score: a.score, priority: a.priority,
-    email_subject: draft.subject, email_body: draft.body, linkedin_message: draft.linkedin,
+    ...(p.review_status === 'Draft' ? { email_subject: draft.subject, email_body: draft.body, linkedin_message: draft.linkedin } : {}),
     phone: p.phone || research.phones[0] || '', email1: p.email1 || research.emails[0] || '',
     linkedin_url: p.linkedin_url || research.social.find(s => s.network === 'LinkedIn' && s.source === 'website')?.url || '',
   };

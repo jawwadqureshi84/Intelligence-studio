@@ -50,17 +50,34 @@ export function analyze(p: P, r: Research | null): Analysis {
   return { score, priority: priorityOf(score), summary, opportunities: opps.slice(0, 6), verified, inferred, unknown };
 }
 
-export function draftOutreach(p: P, a: Analysis, sender: { name: string; company: string }) {
+export type DraftOpts = { lead?: string; tone?: string; length?: string };
+const verifiedFirst = (a: Analysis) => [...a.opportunities].sort((x, y) => (x.basis === y.basis ? 0 : x.basis === 'Verified' ? -1 : 1));
+const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
+export function draftOutreach(p: P, a: Analysis, sender: { name: string; company: string }, o: DraftOpts = {}) {
   const first = (p.contact_name || '').split(/\s+/)[0];
-  const top = a.opportunities.find(o => o.basis === 'Verified') || a.opportunities[0];
-  const hello = first ? `Hi ${first},` : 'Hello,';
-  const obs = top && top.basis === 'Verified' ? `While looking at ${p.company_name}'s website, I noticed: ${top.name.charAt(0).toLowerCase() + top.name.slice(1)}.` : `I had a look at ${p.company_name} and wanted to reach out.`;
+  const tone = o.tone || 'Professional', short = o.length === 'Short';
+  const list = verifiedFirst(a);
+  const all = o.lead === '__all';
+  const top = (!all && o.lead && a.opportunities.find(x => x.name === o.lead)) || list[0];
+  const hello = first ? (tone === 'Friendly' ? `Hi ${first}!` : tone === 'Direct' ? `${first},` : `Hi ${first},`) : 'Hello,';
   const sign = `${sender.name || '[Your name]'}${sender.company ? '\n' + sender.company : ''}`;
-  return {
-    subject: top ? `A quick idea for ${p.company_name}: ${top.service.toLowerCase()}` : `A quick idea for ${p.company_name}`,
-    body: `${hello}\n\n${obs} ${top ? `A ${top.service.toLowerCase()} could help ${p.company_name} turn more visitors into enquiries.` : ''}\n\nWould a short outline of how this could work be useful? Happy to send one, no obligation.\n\n${sign}`,
-    linkedin: `${hello} I looked at ${p.company_name}'s site and had one idea on ${top ? top.service.toLowerCase() : 'your online presence'}. Happy to share it if useful.`,
-  };
+  const ask = tone === 'Direct' ? 'Worth a 15-minute call this week?' : tone === 'Friendly' ? 'Would it be useful if I sent over a short outline? No pressure at all.' : 'Would a short outline of how this could work be useful? Happy to send one, no obligation.';
+  let body: string, subject: string, linkedin: string;
+  if (all && list.length > 1) {
+    const picks = list.slice(0, short ? 2 : 3);
+    const bullets = picks.map(x => `- ${x.name} (${lc(x.service)})`).join('\n');
+    body = `${hello}\n\nI looked at ${p.company_name}'s online presence and noticed a few things that could be improved together:\n\n${bullets}\n\nThese tend to work best as one joined-up piece of work rather than separate fixes. ${ask}\n\n${sign}`;
+    subject = `A few ideas for ${p.company_name}'s online presence`;
+    linkedin = `${hello} I looked at ${p.company_name}'s site and spotted ${picks.length} improvements that fit together (${picks.map(x => lc(x.service)).join(', ')}). Happy to share them if useful.`;
+  } else {
+    const obs = top && top.basis === 'Verified' ? `While looking at ${p.company_name}'s website, I noticed: ${lc(top.name)}.` : `I had a look at ${p.company_name} and wanted to reach out.`;
+    const val = top ? ` A ${lc(top.service)} could help ${p.company_name} turn more visitors into enquiries.` : '';
+    body = short ? `${hello}\n\n${obs}${val}\n\n${ask}\n\n${sign}` : `${hello}\n\n${obs}${val}\n\nI work with businesses like ${p.company_name} on exactly this, and the changes are usually quick to put in place.\n\n${ask}\n\n${sign}`;
+    subject = top ? `A quick idea for ${p.company_name}: ${lc(top.service)}` : `A quick idea for ${p.company_name}`;
+    linkedin = `${hello} I looked at ${p.company_name}'s site and had one idea on ${top ? lc(top.service) : 'your online presence'}. Happy to share it if useful.`;
+  }
+  return { subject, body, linkedin };
 }
 
 /** Optional AI polish. Only used when ANTHROPIC_API_KEY is set; failure falls back to the template draft. */

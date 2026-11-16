@@ -12,3 +12,9 @@ Supabase project: khglynzhjfjdswhrzckf (tables `prospects`, `research_usage`, RL
 
 ## Local
 `cp .env.example .env.local && npm install && npm run dev`   ·   Tests: `npm test`
+
+## Optional server settings (Vercel > Settings > Environment Variables)
+- `ANTHROPIC_API_KEY`: sales assistant and AI-polished drafts. `DAILY_CHAT_LIMIT` (default 100).
+- `APOLLO_API_KEY`: Apollo company enrichment (uses Apollo credits; asks to confirm each time).
+- `BRAVE_SEARCH_API_KEY`: find social profiles not linked from the website.
+These are private (no NEXT_PUBLIC_ prefix). Redeploy after adding.
